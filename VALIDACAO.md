@@ -1,13 +1,27 @@
-# Validação local — 18/09/2026
+# Validação — fluxo funcional local — 18/09/2026
 
-- Backend: 66 testes aprovados; cobertura total de aproximadamente 49%.
-- Frontend: 6 testes de integridade/falha da fonte aprovados; TypeScript e lint aprovados.
-- Compilação de produção aprovada; gráfico de candles conferido no navegador.
-- Consulta real: GET /api/market/btc retornou HTTP 200, fonte Binance Spot e 120 candles de BTC/USDT.
-- O backend foi importado com sucesso, registrando 27 rotas.
-- Python local 3.13; dependências de teste instaladas em .venv. Algumas versões locais
-  diferem das fixadas em requirements.txt para a imagem Python 3.12.
-- Docker não está instalado neste ambiente; PostgreSQL, Redis, persistência e a stack
-  completa não foram verificados ponta a ponta.
-- Dois testes legados A6/A7 no arquivo test_signal_core.py são placeholders sem asserts.
-  O resultado agregado não substitui validação de integração, backtest real ou auditoria da estratégia.
+## Resultados
+
+- Backend: 92 testes aprovados, 2 placeholders legados explicitamente ignorados.
+- Módulos operacionais (`app/live` e `app/main`): 91% de cobertura.
+- Frontend: 8 testes aprovados; TypeScript, ESLint e compilação de produção aprovados.
+- Testes novos isolam dados sintéticos em bancos temporários; não gravam na carteira real do aplicativo.
+- SQLite reaberto após reinício: histórico e resultado do backtest preservados.
+- GET /api/engine/status: dados válidos da Binance, calendário disponível e análise calculada.
+- GET /api/engine/history/{id}: snapshot completo com 600 candles, indicadores e decisão.
+- POST /api/engine/backtest: 30 dias reais, 1 operação, saldo final 9.900 USDT (-1%).
+  Este é o resultado do conjunto de dados testado, não promessa nem validação estatística da estratégia.
+- Origem externa em POST /api/engine/paper: HTTP 403.
+- Falhas da fonte, dados antigos, calendário indisponível, gaps, duplicação, custos,
+  stop prioritário, entrada na abertura seguinte e ausência de lookahead cobertos por testes.
+- Auditoria do sinal e filtros usados na confirmação persistidos. Cancelamento e encerramento
+  simulados verificados em testes isolados; nenhuma operação real é executada.
+
+## Ambiente e limites
+
+Python 3.13 e dependências fixadas nos manifests. Serviços locais em 127.0.0.1:8000 e :3000.
+A automação do navegador ficou indisponível neste turno por falha do ambiente; a versão
+integrada foi verificada por compilação, testes e requisições reais através das rotas do painel.
+Não foi executado Docker neste computador. O modo implementado é pessoal/local, sem
+contas multiusuário ou execução financeira. Backtest é técnico, com custos e sem calendário
+macro histórico; não valida todos os filtros ao vivo nem resultados futuros.

@@ -282,6 +282,7 @@ def test_a5_score_82_publishes(bullish_dfs):
 # ============================================================
 # A6: Durante FOMC → Bloqueio, NEWS_BLACKOUT
 # ============================================================
+@pytest.mark.skip(reason="Cobertura efetiva em test_live.py e test_orchestrator.py")
 def test_a6_news_blackout():
     # This requires the news blackout logic which is in the orchestrator layer
     # Not in signal_core.py directly - it's a higher-level gate
@@ -292,6 +293,7 @@ def test_a6_news_blackout():
 # ============================================================
 # A7: Dado 3 min defasado (TF1=1m) → Bloqueio, STALE_DATA
 # ============================================================
+@pytest.mark.skip(reason="Cobertura efetiva em test_live.py e test_validators.py")
 def test_a7_stale_data():
     # This requires the data freshness check in the ingest/orchestrator layer
     # Not in signal_core.py directly

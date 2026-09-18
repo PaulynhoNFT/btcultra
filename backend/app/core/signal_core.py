@@ -1,5 +1,5 @@
 # language: Python 3.10+, file: signal_core.py, target: any
-# *Triple Screen de Elder â€” funÃ§Ãµes puras, apenas candles fechados, determinÃ­stico*
+# *Triple Screen de Elder — funções puras, apenas candles fechados, determinístico*
 # *sem I/O, sem efeitos colaterais. alimenta com DataFrames: open,high,low,close,volume*
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ class Side(str, Enum):
 
 
 # ============================================================
-# 2. INDICADORES â€” puros
+# 2. INDICADORES — puros
 # ============================================================
 def ema(s: pd.Series, n: int) -> pd.Series:
     return s.ewm(span=n, adjust=False).mean()
@@ -123,7 +123,7 @@ def cvd_proxy(close: pd.Series, volume: pd.Series, lb: int = 20) -> tuple[pd.Ser
 
 
 # ============================================================
-# 3. PADRÃ•ES DE CANDLE
+# 3. PADRÕES DE CANDLE
 # ============================================================
 def is_bull_engulf(df: pd.DataFrame, i: int) -> bool:
     if i < 1:
@@ -164,7 +164,7 @@ def is_shooting_star(df: pd.DataFrame, i: int, br: float = 0.33) -> bool:
 
 
 # ============================================================
-# 4. TELA 1 â€” TENDÃŠNCIA
+# 4. TELA 1 — TENDÊNCIA
 # ============================================================
 def classify_trend(tf1: pd.DataFrame) -> TrendState:
     if len(tf1) < 40:
@@ -185,7 +185,7 @@ def classify_trend(tf1: pd.DataFrame) -> TrendState:
 
 
 # ============================================================
-# 5. REGIME â€” ADX + BBW + ATR pct
+# 5. REGIME — ADX + BBW + ATR pct
 # ============================================================
 @dataclass
 class RegimeReport:
@@ -220,7 +220,7 @@ def detect_regime(tf1: pd.DataFrame) -> RegimeReport:
 
 
 # ============================================================
-# 6. TELA 2 â€” CORREÃ‡ÃƒO
+# 6. TELA 2 — CORREÇÃO
 # ============================================================
 @dataclass
 class CorrectionReport:
@@ -257,16 +257,16 @@ def detect_correction(tf2: pd.DataFrame, trend: TrendState) -> CorrectionReport:
         in_zone = (r > 70) or (k > 80) or (bv > 0)
 
     if not in_zone:
-        return CorrectionReport(CorrectionState.NO_CORRECTION, r, k, bv, br, in_fib, near_ema)
+        return CorrectionReport(CorrectionState.NO_CORRECTION, r, k, br, bv, in_fib, near_ema)
     if not (in_fib or near_ema):
-        return CorrectionReport(CorrectionState.TOO_EARLY, r, k, bv, br, in_fib, near_ema)
+        return CorrectionReport(CorrectionState.TOO_EARLY, r, k, br, bv, in_fib, near_ema)
     if abs(c - e13.iloc[-1]) > 1.0 * atr_v:
-        return CorrectionReport(CorrectionState.TOO_LATE, r, k, bv, br, in_fib, near_ema)
-    return CorrectionReport(CorrectionState.IDEAL, r, k, bv, br, in_fib, near_ema)
+        return CorrectionReport(CorrectionState.TOO_LATE, r, k, br, bv, in_fib, near_ema)
+    return CorrectionReport(CorrectionState.IDEAL, r, k, br, bv, in_fib, near_ema)
 
 
 # ============================================================
-# 7. TELA 3 â€” GATILHO
+# 7. TELA 3 — GATILHO
 # ============================================================
 @dataclass
 class TriggerReport:
@@ -396,7 +396,7 @@ def score_signal(
     atr_v = atr(tf3.high, tf3.low, tf3.close).iloc[-1]
     entry, stop, tp1, tp2, tp3, risk = _stops(tf3, side, atr_v, mode)
     rr = abs(tp2 - entry) / risk if risk > 0 else 0.0
-    if rr < 2.0:
+    if rr < 2.0 - 1e-9:
         return SignalDecision(False, side, 0, f"rr:{rr:.2f}", sb)
 
     sb.rr_bonus = 5 + (2 if rr >= 3.0 else 0)

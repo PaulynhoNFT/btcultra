@@ -1,63 +1,86 @@
+"""Working single-user API; persistent local database, real public market data."""
 import asyncio
+import os
+import sqlite3
 from contextlib import asynccontextmanager, suppress
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from app.config import get_settings
-from app.database import init_db, engine
-from app.routes import auth, signals, backtest, market
-from app.ingest import start_ingestor, stop_ingestor
-from app.orchestrator import start_orchestrator, stop_orchestrator
+from pathlib import Path
+from typing import Literal
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from pydantic import BaseModel, Field
+from app.live.store import Store
+from app.live.service import LiveService
+from app.live.engine import summary
 
-settings = get_settings()
-
+DATA = Path(os.environ.get('BTC_DATA_DIR', Path(__file__).resolve().parents[1] / 'data'))
+store=Store(DATA / 'btcultra.sqlite3')
+service=LiveService(store)
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    await init_db()
-    await start_orchestrator()
-    ingest_task = asyncio.create_task(start_ingestor())
-    try:
-        yield
+async def lifespan(app):
+    worker=asyncio.create_task(service.run())
+    try: yield
     finally:
-        ingest_task.cancel()
-        with suppress(asyncio.CancelledError):
-            await ingest_task
-        await stop_ingestor()
-        await stop_orchestrator()
-        await engine.dispose()
+        worker.cancel()
+        with suppress(asyncio.CancelledError): await worker
 
+app=FastAPI(title='BTC Ultra — análise real e simulação',version='2.0.0',lifespan=lifespan)
+app.add_middleware(TrustedHostMiddleware,allowed_hosts=['localhost','127.0.0.1','backend','testserver'])
 
-app = FastAPI(
-    title="Signal Platform API",
-    description="Triple Screen Crypto Signals — Charter 1.0",
-    version="1.0.0",
-    lifespan=lifespan,
-    docs_url="/docs" if settings.environment == "development" else None,
-    redoc_url="/redoc" if settings.environment == "development" else None,
-)
+@app.middleware('http')
+async def local_writes(request: Request,call_next):
+    # Personal mode: bind to loopback and only accept mutations from the same-origin proxy.
+    if request.method not in ('GET','HEAD','OPTIONS'):
+        origin=request.headers.get('origin')
+        if origin not in ('http://localhost:3000','http://127.0.0.1:3000'):
+            from fastapi.responses import JSONResponse
+            return JSONResponse({'detail':'Origem não autorizada'},status_code=403)
+    response=await call_next(request)
+    response.headers['Cache-Control']='no-store'
+    return response
 
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Routes
-app.include_router(auth.router)
-app.include_router(signals.router)
-app.include_router(backtest.router)
-app.include_router(market.router)
-
-
-@app.get("/health")
+@app.get('/health')
 async def health():
-    return {"status": "ok", "version": "1.0.0", "engine": "triple-screen-v1"}
+    state=service.status()
+    return {'status':'ok' if state['ready'] else 'warming_up','source':state['source'],'storage':state['storage']}
 
+@app.get('/live/status')
+async def status(): return service.status()
 
-@app.get("/")
-async def root():
-    return {"message": "Signal Platform API", "docs": "/docs"}
+@app.get('/live/history')
+async def history(): return [summary(s) for s in store.history()]
+
+@app.get('/live/history/{ident}')
+async def detail(ident: str):
+    data=store.analysis(ident)
+    if not data: raise HTTPException(404,'Análise não encontrada')
+    return data
+
+class PaperRequest(BaseModel):
+    analysis_id: str = Field(min_length=64,max_length=64)
+    risk_pct: float = Field(default=1,gt=0,le=1,allow_inf_nan=False)
+    confirmed: Literal[True]
+
+@app.post('/live/paper',status_code=201)
+async def paper(body: PaperRequest):
+    try: return await service.open_paper(body.analysis_id,body.risk_pct)
+    except (ValueError,sqlite3.IntegrityError) as exc: raise HTTPException(409,str(exc)) from exc
+
+class BacktestRequest(BaseModel):
+    days: Literal[7,30] = 7
+
+@app.post('/live/backtest')
+async def run_backtest(body: BacktestRequest):
+    try: return await service.run_backtest(body.days)
+    except ValueError as exc: raise HTTPException(409,str(exc)) from exc
+
+@app.get('/live/backtest')
+async def last_backtest(): return store.latest_backtest()
+
+class FinishRequest(BaseModel):
+    confirmed: Literal[True]
+
+@app.post('/live/paper/{ident}/close')
+async def finish_paper(ident: str, body: FinishRequest):
+    try: return await service.finish_paper(ident)
+    except ValueError as exc: raise HTTPException(409,str(exc)) from exc
