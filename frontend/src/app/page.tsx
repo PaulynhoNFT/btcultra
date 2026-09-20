@@ -1,4 +1,3 @@
-import { BitcoinMarket } from '@/components/BitcoinMarket';
 import { AnalysisDashboard } from '@/components/AnalysisDashboard';
 export default function HomePage() {
   return <div className="min-h-screen bg-background">
@@ -9,7 +8,6 @@ export default function HomePage() {
       </div>
     </header>
     <main className="container mx-auto space-y-8 px-4 py-6">
-      <BitcoinMarket />
       <AnalysisDashboard />
       <footer className="rounded-xl border border-border bg-muted/30 p-4 text-xs text-muted-foreground">Ferramenta de análise e simulação. Sinais algorítmicos não garantem resultados e não são recomendação personalizada. Nenhuma ordem é enviada à corretora. A carteira é virtual e usa USDT como unidade. As decisões utilizam candles fechados de 1 dia, 4 horas e 1 hora.</footer>
     </main>
