@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {StructurePanel} from '../src/components/StructurePanel';
+import type {StructureAnalysis,StructureScreen} from '../src/lib/structure';
+Object.assign(globalThis,{React});
+const screen:StructureScreen={direction:'RANGE',internal_direction:'BULL',protected:null,pivots:[],events:[],zones:[],clusters:[],candles:[{time:0,close_time:3599999,open:100,high:102,low:98,close:101}],description:'Sem direção confirmada.',close_time:3599999,close:101};
+const data:StructureAnalysis={version:'test-only',state:'available',reason:null,screens:{'1d':screen,'4h':screen,'1h':screen},setup:{state:'waiting',side:'RANGE',zone:null,plan:null,checks:[],waiting:'Aguardar confirmação.',invalidation:'Sem hipótese.'}};
+test('fresh descriptive analysis renders all screens and chart despite no entry',()=>{const html=renderToStaticMarkup(React.createElement(StructurePanel,{data,fresh:true,loading:false}));assert.match(html,/<svg/);assert.match(html,/Direção principal/);assert.match(html,/Região para observar/);assert.match(html,/Confirmação de entrada/);assert.match(html,/Aguardar confirmação/);assert.doesNotMatch(html,/Plano condicional de estrutura/);});
+test('stale data cannot display chart or old plan',()=>{const old={...data,setup:{...data.setup!,plan:{side:'BULL' as const,entry:100,stop:90,target:150,rr:5,net_rr:4,conditional:true,execution_enabled:false}}};const html=renderToStaticMarkup(React.createElement(StructurePanel,{data:old,fresh:false,loading:false}));assert.doesNotMatch(html,/<svg/);assert.doesNotMatch(html,/limite de perda/);assert.match(html,/Aguardando dados válidos/);});
+test('initial state explains loading',()=>{const html=renderToStaticMarkup(React.createElement(StructurePanel,{fresh:false,loading:true}));assert.match(html,/Buscando as velas fechadas/);assert.doesNotMatch(html,/<svg/);});

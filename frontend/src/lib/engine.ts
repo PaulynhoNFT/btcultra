@@ -1,5 +1,7 @@
+import type { StructureAnalysis } from './structure';
 export interface Decision { ok: boolean; side: 'BUY' | 'SELL' | 'NONE'; score: number; reason: string; entry: number; stop: number; tp1: number; tp2: number; tp3: number; rr: number; breakdown: Record<string, number> }
 export interface Analysis {
+  structure?: StructureAnalysis;
   id: string; candle_time: number; created_at: string; engine_version: string; source: string; trend: string;
   decision: Decision; regime: { state: string; adx: number | null; bbw_pct: number | null; atr_pct: number | null; reason: string; ok_to_trade: boolean };
   correction: { state: string; rsi: number | null; stoch_k: number | null; near_ema13: boolean; in_fib_zone: boolean };

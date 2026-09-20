@@ -111,6 +111,10 @@ class LiveService:
         if macro['blocked']: reasons.append('JANELA_MACRO')
         if portfolio['blocked']: reasons.append('LIMITE_DE_RISCO')
         current=summary(self.latest) if self.latest else None
+        if current and not fresh and current.get('structure'):
+            # Do not expose an old conditional plan as a current API signal.
+            current['structure'] = dict(current['structure'], state='unavailable',
+                reason='Dados antigos ou coleta indisponível. Hipótese sem autorização atual.', setup=None)
         if current and not current['decision']['ok']: reasons.append(current['decision']['reason'])
         actionable=bool(current and current['decision']['ok'] and not reasons)
         return dict(ready=fresh,last_success=self.last_success or None,error=self.error,

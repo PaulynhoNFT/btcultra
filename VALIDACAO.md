@@ -25,3 +25,14 @@ integrada foi verificada por compilação, testes e requisições reais através
 Não foi executado Docker neste computador. O modo implementado é pessoal/local, sem
 contas multiusuário ou execução financeira. Backtest é técnico, com custos e sem calendário
 macro histórico; não valida todos os filtros ao vivo nem resultados futuros.
+
+
+## Integração de estrutura Fornes — 20/09/2026
+
+- Backend completo: 105 testes aprovados; 2 testes legados previamente ignorados. Após o ajuste de exibição de todos os critérios, os 13 testes de estrutura passaram novamente.
+- Frontend: 14 testes aprovados, incluindo renderização com estrutura descritiva sem entrada, carregamento e ocultação de gráfico/plano com dados antigos.
+- Compilação de produção, lint e verificação de tipos aprovados; verificação final de tipos aprovada após novos testes de renderização.
+- API real local validada através do proxy Next: coleta pronta, fonte Binance, `fornes-structure-v1`, 200 velas em cada um dos três períodos, eventos e regiões calculados; nenhuma entrada fabricada quando falta alinhamento.
+- Testes cobrem atraso de pivôs, estabilidade dos eventos em cada prefixo temporal, pavio versus fechamento, alta/baixa/faixa, possível mudança sem reversão imediata, preenchimento de faixa, alvo estrutural mais próximo, histórico insuficiente ou descontínuo, toque sem confirmação, invalidação, cobertura histórica, sequência completa e expiração, e bloqueio de dados antigos sem mutar snapshot.
+- Limitação: a automação de navegador falhou ao iniciar (`helper_unknown_error: setup refresh had errors`). A interface foi compilada e teve renderização testada, mas a inspeção visual e interações em navegador não puderam ser verificadas nesta sessão.
+- Não foi realizado backtest de rentabilidade do novo operacional. Carteira e backtest anteriores continuam associados aos filtros de médias.

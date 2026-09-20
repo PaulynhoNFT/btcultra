@@ -10,7 +10,8 @@ from app.core.signal_core import (classify_trend, detect_regime, detect_correcti
     detect_trigger, generate_signal, ema, macd, rsi, atr)
 
 PERIODS = {'1h': 3600000, '4h': 14400000, '1d': 86400000}
-VERSION = 'triple-screen-live-v2'
+VERSION = 'triple-screen-live-v3'
+from app.live.structure import analyze_structure
 
 def clean(value):
     if isinstance(value, dict): return {k: clean(v) for k, v in value.items()}
@@ -60,7 +61,7 @@ def analyze(frames):
             macd_hist=macd(f.close)[2].iloc[-1], rsi=rsi(f.close).iloc[-1],
             atr=atr(f.high,f.low,f.close).iloc[-1], candle_time=inputs[tf][-1]['time'])
     snapshot = clean(dict(engine_version=VERSION, source='Binance Spot', symbol='BTC/USDT',
-        inputs=inputs, trend=trend.value, regime=asdict(regime), correction=asdict(correction),
+        inputs=inputs, structure=analyze_structure(inputs), trend=trend.value, regime=asdict(regime), correction=asdict(correction),
         trigger=asdict(trigger), indicators=indicators, decision=asdict(decision)))
     ident = hashlib.sha256(canonical(snapshot).encode()).hexdigest()
     return dict(id=ident, candle_time=inputs['1h'][-1]['time'], snapshot=snapshot,

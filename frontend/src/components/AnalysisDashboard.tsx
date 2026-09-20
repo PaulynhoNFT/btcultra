@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { StructurePanel } from '@/components/StructurePanel';
 import { BitcoinMarket } from '@/components/BitcoinMarket';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { engineRequest, reasonText, type Analysis, type BacktestResult, type EngineStatus } from '@/lib/engine';
@@ -39,7 +40,9 @@ export function AnalysisDashboard() {
   useEffect(() => setConfirmed(false), [a?.id]);
 
   return <>
-    <section id="analysis" className={panel}>
+    <StructurePanel data={a?.structure} fresh={fresh} loading={status.isLoading} />
+    <details className={panel}><summary className="cursor-pointer text-lg font-semibold">Filtros separados: Triple Screen por médias e MACD</summary>
+    <section id="indicator-analysis" className="mt-5">
       <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">Análise Triple Screen — BTC/USDT</h2><p className="text-sm text-muted-foreground">Recalculada a cada minuto com candles fechados; o histórico registra cada conjunto de dados.</p></div>
         <span className={`rounded-full px-4 py-2 font-semibold ${active ? 'bg-green-500/15 text-green-400' : 'bg-amber-500/10 text-amber-300'}`}>{!fresh ? 'Dados indisponíveis' : active ? `Sinal de ${label(d?.side || 'NONE').toLowerCase()}` : 'Aguardar'}</span></div>
       {status.isLoading && <p role="status" className="my-5">Carregando histórico real e indicadores…</p>}
@@ -60,11 +63,12 @@ export function AnalysisDashboard() {
       </>}
     </section>
 
+    </details>
     <BitcoinMarket />
 
     {state && <section className={panel}><h2 className="text-lg font-semibold">Calendário e bloqueios</h2><p className="mt-2 text-sm">{!state.macro.available ? 'Calendário indisponível: novas entradas bloqueadas.' : state.macro.blocked ? 'Janela macro ativa: novas entradas bloqueadas.' : 'Sem evento de alto impacto em USD na janela de ±15 minutos.'}</p><p className="mt-1 text-xs text-muted-foreground">Fonte: <a className="underline" href={state.macro.source} target="_blank" rel="noreferrer">Forex Factory / Fair Economy</a> · verificado: {date((state.macro.checked_at || 0) * 1000)}</p><ul className="mt-4 space-y-2 text-sm">{state.macro.events.map(e => <li key={`${e.title}-${e.time}`}><span className="text-muted-foreground">{date(e.time*1000)}</span> · {e.title}</li>)}</ul></section>}
 
-    <section id="paper" className={panel}><h2 className="text-xl font-semibold">Carteira simulada</h2><p className="text-sm text-muted-foreground">Saldo virtual inicial de 10.000 USDT. Nenhuma compra, venda ou transferência real.</p>
+    <section id="paper" className={panel}><h2 className="text-xl font-semibold">Carteira simulada · filtros de médias</h2><p className="text-sm text-muted-foreground">Saldo virtual inicial de 10.000 USDT. Nenhuma compra, venda ou transferência real.</p>
       {state && <><div className="my-5 grid grid-cols-2 gap-4 md:grid-cols-4"><Stat title="Saldo realizado · USDT" value={money(state.portfolio.equity)}/><Stat title="Resultado realizado · USDT" value={money(state.portfolio.realized_pnl)}/><Stat title="Perdas consecutivas" value={state.portfolio.consecutive_losses}/><Stat title="Proteção de perdas" value={state.portfolio.blocked ? 'Bloqueada' : 'Dentro dos limites'}/></div>
       <p className="text-xs text-muted-foreground">Limites: −300 USDT no dia, −700 em 7 dias, −1.500 em 30 dias. Após 3 perdas, risco reduzido pela metade; após 5, pausa de 24h.</p>
       <div className="mt-4 flex flex-wrap items-center gap-4"><label className="text-sm">Risco por operação <select value={risk} onChange={e => setRisk(Number(e.target.value))} className="ml-2 rounded border border-border bg-background p-2"><option value={0.5}>0,5%</option><option value={1}>1%</option></select></label>{qty != null && <p className="text-sm text-muted-foreground">Tamanho estimado: {qty.toFixed(6)} BTC · limitado ao saldo virtual.</p>}</div>
@@ -75,7 +79,7 @@ export function AnalysisDashboard() {
       <div className="mt-5 overflow-x-auto"><table className="w-full text-left text-sm"><thead className="text-muted-foreground"><tr><th className="p-2">Solicitação</th><th>Direção</th><th>Status</th><th>Entrada</th><th>Resultado · USDT</th><th>Ação</th></tr></thead><tbody>{state.portfolio.trades.map(t => <tr key={t.id} className="border-t border-border"><td className="p-2">{date(t.requested_at)}</td><td>{label(t.side)}</td><td>{label(t.status)}{t.cancel_reason && <p className="text-xs">{t.cancel_reason}</p>}</td><td>{money(t.entry)}</td><td>{money(t.pnl ?? t.unrealized_pnl)}{t.status==='open' ? ' (em aberto)' : ''}</td><td>{['pending','open'].includes(t.status) && <button className="text-primary underline disabled:opacity-40" disabled={finish.isPending} onClick={() => { if (window.confirm(t.status === 'pending' ? 'Cancelar a entrada simulada agendada?' : 'Encerrar a operação simulada pela cotação real atual, descontando os custos?')) finish.mutate(t.id); }}>{t.status === 'pending' ? 'Cancelar' : 'Encerrar'}</button>}</td></tr>)}</tbody></table>{!state.portfolio.trades.length && <p className="py-4 text-sm text-muted-foreground">Nenhuma operação simulada registrada.</p>}</div></>}
     </section>
 
-    <section id="backtest" className={panel}><h2 className="text-xl font-semibold">Backtest com histórico real</h2><p className="mt-1 text-sm text-muted-foreground">Teste retrospectivo do motor técnico. Os filtros macro históricos não estão incluídos; os resultados não representam o desempenho completo do fluxo ao vivo.</p>
+    <section id="backtest" className={panel}><h2 className="text-xl font-semibold">Backtest dos filtros de médias</h2><p className="mt-1 text-sm text-muted-foreground">Teste retrospectivo do motor técnico. Os filtros macro históricos não estão incluídos; os resultados não representam o desempenho completo do fluxo ao vivo.</p>
       <div className="my-4 flex gap-3"><label><span className="sr-only">Período do backtest</span><select value={days} onChange={e => setDays(Number(e.target.value))} className="rounded border border-border bg-background p-2"><option value={7}>Últimos 7 dias</option><option value={30}>Últimos 30 dias</option></select></label><button className={button} disabled={!fresh || simulation.isPending || state?.backtest_running} onClick={() => simulation.mutate()}>{simulation.isPending || state?.backtest_running ? 'Calculando…' : 'Executar backtest'}</button></div>
       {simulation.error && <p role="alert" className="text-red-400">{simulation.error.message}</p>}
       {bt && <><p className="text-xs text-muted-foreground">{date(bt.start_time)} → {date(bt.end_time)} · {bt.days} dias</p><div className="my-5 grid grid-cols-2 gap-4 md:grid-cols-4"><Stat title="Saldo final · USDT" value={money(bt.final_equity)}/><Stat title="Retorno líquido" value={`${money(bt.return_pct)}%`}/><Stat title="Queda máxima" value={`${money(bt.max_drawdown_pct)}%`}/><Stat title="Operações / acerto" value={`${bt.trade_count} / ${bt.win_rate == null ? '—' : money(bt.win_rate)+'%'}`}/></div>

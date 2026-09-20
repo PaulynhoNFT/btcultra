@@ -118,3 +118,7 @@ antigos de pesquisa permanecem para referência e possuem testes próprios. Recu
 como meta-modelo ML, alertas externos e múltiplos usuários não fazem parte deste modo pessoal.
 
 Esta ferramenta não constitui recomendação de investimento. Resultado passado não garante resultado futuro.
+
+## Leitura de estrutura no gráfico
+
+O painel abre com a interpretação automática das aulas de Alexandre Fornes: estrutura no diário, regiões em 4 horas e confirmação em 1 hora. Marcações e explicações usam as velas reais do snapshot. Os filtros de médias do Triple Screen, carteira e backtest permanecem separados. Consulte [regras, sequência e limites](docs/fornes-operacional.md).
